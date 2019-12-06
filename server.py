@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_json import FlaskJSON, JsonError, json_response, as_json
-import functions
+import functions, requests, threading, logging, time
 
 app = Flask(__name__)
 FlaskJSON(app)
@@ -12,22 +12,37 @@ def hello_world():
 @app.route('/', methods=['POST'])
 def home():
     data = request.get_json()
-    print("Request: {}".format(data))
+    logging.info("Request received: {}".format(data))
     command = data['command']
     res = {}
 
     if(command=='ping'):
         res = functions.ping_pong()
     elif(command=='sample'):
-        res = functions.sample(data['size'], data['begin'], data['end']),
+        res = functions.sample(data['size'], data['begin'], data['end'])
     elif(command=='sort'):
-        res = functions.sort(data)
+        th = threading.Thread(target=functions.sort, args=(data,))
+        logging.info("Sort  : before running thread")
+        th.start()
+        logging.info("Sort  : wait for the thread to finish")
+        logging.info("Sort  : all done")
+        #res = functions.sort(data)
 
-    print("Response: {}".format(res))
+    logging.info("Response: {}".format(res))
     return jsonify(res)
+
+def connect():
+    data = {"command": "connect",
+            "name": "Benoît Wéry",
+            "port": 5000}
+    return requests.post('http://172.17.3.193:8000', json=data)
 
 if __name__=='__main__':
     #app.run(host='0.0.0.0', port=80)
+    format = "%(asctime)s: %(message)s"
+    logging.basicConfig(format=format, level=logging.INFO,
+    datefmt="%H:%H:%S")
+    logging.info("Main    : before creating thread")
     app.run(host='0.0.0.0', port=5000, debug=True)
 
 
