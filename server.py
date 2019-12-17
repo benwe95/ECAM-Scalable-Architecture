@@ -21,16 +21,12 @@ def home():
     elif(command=='sample'):
         res = functions.sample(data['size'], data['begin'], data['end'])
     elif(command=='sort'):
-        th = threading.Thread(target=functions.sort, args=(data,))
-        logging.info("Sort  : before running thread")
-        th.start()
-        logging.info("Sort  : wait for the thread to finish")
-        logging.info("Sort  : all done")
-        #res = functions.sort(data)
+        res = functions.sort(data)
 
     logging.info("Response: {}".format(res))
     return jsonify(res)
 
+@app.route('/connect')
 def connect():
     data = {"command": "connect",
             "name": "Benoît Wéry",
@@ -46,3 +42,9 @@ if __name__=='__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 
 
+        #th = threading.Thread(target=functions.sort, args=(data,))
+        #logging.info("Sort  : before running thread")
+        #th.start()
+        #logging.info("Sort  : wait for the thread to finish")
+        #logging.info("Sort  : all done")
+        #res = functions.sort(data)
