@@ -57,7 +57,7 @@ def sort(data):
     return
 
 def process(data):
-    list_sequences = launch_threads(NUMBERS[str(data['id'])].copy(), 3)
+    list_sequences = launch_threads(NUMBERS[str(data['id'])].copy(), 4)
     del NUMBERS[str(data['id'])][:]
     sorted_list = merge_sequences(list_sequences)
     prepare_response(sorted_list, 100, data['id'])
@@ -73,9 +73,7 @@ def launch_threads(list_numbers, number_threads):
     
     for thread_num in range(0, number_threads):
         if thread_num == number_threads-1:
-        #if len(list_numbers)<numbers_by_threads:
             numbers_by_threads = len(list_numbers)
-        #numbers = list_numbers[thread_num*numbers_by_threads:(thread_num+1)*numbers_by_threads]
         numbers = list_numbers[0:numbers_by_threads]
         del list_numbers[0:numbers_by_threads]
         my_thread = mythread.myThread(thread_num, numbers)
