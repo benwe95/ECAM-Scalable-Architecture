@@ -41,7 +41,7 @@ if __name__=='__main__':
     logging.basicConfig(format=format, level=logging.INFO,
     datefmt="%H:%H:%S")
     logging.info("Main    : before creating thread")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
 
 
         #th = threading.Thread(target=functions.sort, args=(data,))

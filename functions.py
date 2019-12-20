@@ -1,5 +1,5 @@
 from random import randint
-import logging, mythread
+import logging, mythread, threading
 import tabulate
 import requests
 from flask import jsonify
@@ -52,30 +52,23 @@ def sort(data):
 
     if not data['last']:
        return
-    
 
-    list_sequences = launch_threads(NUMBERS[str(data['id'])].copy(), 1)
+    threading.Thread(target=test, args=(data,), daemon=True).start()
+    return
+
+def test(data):
+    list_sequences = launch_threads(NUMBERS[str(data['id'])].copy(), 2)
     del NUMBERS[str(data['id'])][:]
     sorted_list = merge_sequences(list_sequences)
     prepare_response(sorted_list, 100, data['id'])
-    '''
-    for element in resp:
-        requests.post('http://172.17.3.35:8000', json=element)
-    '''
 
 def launch_threads(list_numbers, number_threads):
     logging.info("Entered LAUNCH_THREADS function")
     jobs = []
-    # Get all the numbers from the file.txt and store them as a list of integers
-    '''
-    with open(file, 'r') as file:
-        list_numbers = file.readlines()
-        list_numbers = [int(s.strip()) for s in list_numbers]
-    '''
 
     total_numbers = len(list_numbers)   
     numbers_by_threads = total_numbers//number_threads
-    logging.info("\nTotal numbers: %s\nNumbers by threads: %s\n", total_numbers, numbers_by_threads)
+    logging.info("=======================\nTotal numbers: %s\nNumbers by threads: %s\n", total_numbers, numbers_by_threads)
 
     for thread_num in range(0, number_threads):
         if len(list_numbers)<numbers_by_threads:
@@ -83,7 +76,13 @@ def launch_threads(list_numbers, number_threads):
         numbers = list_numbers[thread_num*numbers_by_threads:(thread_num+1)*numbers_by_threads]
         my_thread = mythread.myThread(thread_num, numbers)
         jobs.append(my_thread)
-        my_thread.run()
+        print_jobs(jobs)
+        my_thread.start()
+    
+    print_jobs(jobs)
+
+    for job in jobs:
+        job.join()
 
     print_jobs(jobs)
     list_sequences = [job.get_list_sorted() for job in jobs]
@@ -199,7 +198,7 @@ def quicksort(remaining_data):
     #return data
 
 def print_jobs(jobs):
-    logging.info("FUNCTIONS Entered PRINT_JOBS()")
+    #logging.info("FUNCTIONS Entered PRINT_JOBS()")
     jobs_info = [job.get_info() for job in jobs]
     headers = jobs_info[0].keys()
     rows = [x.values() for x in jobs_info]

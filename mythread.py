@@ -12,7 +12,7 @@ class myThread(threading.Thread):
         self.__list_sorted = []
     
     def get_info(self):
-        logging.info('THREAD %d entered GET_THREAD_INFO()', self.__threadID)
+        #logging.info('THREAD %d entered GET_THREAD_INFO()', self.__threadID)
         info = {"ID": self.__threadID, 
                 "Numbers": len(self.__list_numbers),
                 "Status": self.__status,
@@ -20,7 +20,6 @@ class myThread(threading.Thread):
                 "Finished Time": self.__time_finish,
                 "Total Time": self.__time_finish-self.__time_start}
 
-        logging.info(info)
         return info
 
     def get_list_numbers(self):
