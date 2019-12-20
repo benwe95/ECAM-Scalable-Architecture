@@ -1,7 +1,7 @@
 # ECAM-Scalable-Architecture
 
 ## Instructions
-The instructions of the course are given at the following [address].(https://quentin.lurkin.xyz/courses/scalable/labo1/)
+The instructions of the course are given at the [following address](https://quentin.lurkin.xyz/courses/scalable/labo1/)
 
 ## Set up
 The server run on a Python [Flask](https://palletsprojects.com/p/flask/)

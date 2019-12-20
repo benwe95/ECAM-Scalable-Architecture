@@ -1,9 +1,10 @@
 from random import randint
 import logging, mythread
 import tabulate
+import requests
+from flask import jsonify
 
-FILE_NUMBERS = "numbers.txt"
-JOBS = []
+NUMBERS = {}
 
 def ping_pong():
     print('entered ping')
@@ -13,7 +14,7 @@ def sample(size, begin, end):
     print('entered sample')
     data = []
     for i in range(0, size):
-        data.append(randint(begin, end))
+        data.append(randint(begin, end-1))
     return {"sample": data}
     #return json_response(sample=data)
 
@@ -42,45 +43,135 @@ def sample(size, begin, end):
     """
 def sort(data):
     logging.info("Entering SORT function")
-    with open (FILE_NUMBERS, "a") as file:
-        logging.info("Opened file numbers.txt")
-        for number in data['data']:
-            file.write("%s\n" %str(number))
+    print(data)
+
+    if(str(data['id']) not in NUMBERS.keys()): 
+         NUMBERS[str(data['id'])] = data['data']
+    else:
+        NUMBERS[str(data['id'])].extend(data['data'])
 
     if not data['last']:
-       return {'response': 200}
+       return
+    
 
-    launch_threads(FILE_NUMBERS, 5)
-    return {'response': 'last packet'}
+    list_sequences = launch_threads(NUMBERS[str(data['id'])].copy(), 1)
+    del NUMBERS[str(data['id'])][:]
+    sorted_list = merge_sequences(list_sequences)
+    prepare_response(sorted_list, 100, data['id'])
+    '''
+    for element in resp:
+        requests.post('http://172.17.3.35:8000', json=element)
+    '''
 
-def launch_threads(file, number_threads):
+def launch_threads(list_numbers, number_threads):
     logging.info("Entered LAUNCH_THREADS function")
+    jobs = []
     # Get all the numbers from the file.txt and store them as a list of integers
+    '''
     with open(file, 'r') as file:
         list_numbers = file.readlines()
         list_numbers = [int(s.strip()) for s in list_numbers]
+    '''
 
     total_numbers = len(list_numbers)   
     numbers_by_threads = total_numbers//number_threads
     logging.info("\nTotal numbers: %s\nNumbers by threads: %s\n", total_numbers, numbers_by_threads)
 
     for thread_num in range(0, number_threads):
+        if len(list_numbers)<numbers_by_threads:
+            numbers_by_threads = len(list_numbers)
         numbers = list_numbers[thread_num*numbers_by_threads:(thread_num+1)*numbers_by_threads]
         my_thread = mythread.myThread(thread_num, numbers)
-        JOBS.append(my_thread.get_info())
+        jobs.append(my_thread)
         my_thread.run()
-    print_jobs()
-    return True
 
-def thread_job(info_thread, list_numbers):
-    info_thread['status'] = 'started'
+    print_jobs(jobs)
+    list_sequences = [job.get_list_sorted() for job in jobs]
+    return list_sequences
 
-    info_thread['status'] = 'done'
-    return 
 
-def merge_sequences():
+''' Exemple:
+    [
+        [1, 5, 7, 12],
+        [2, 3, 8, 10],
+        [1, 6, 7, 11, 13]
+    ]
+
+    min_of_each_list = [1, 2, 1]
+    minimum = 1
+    index_min = 0
+    sorted_list.append(1) -> [1]
+
+    [
+        [5, 7, 12],
+        [2, 3, 8, 10],
+        [1, 6, 7, 11, 13]
+    ]
+
+    min_of_each_list = [5, 2, 1]
+
+'''
+def merge_sequences(list_sequences):
     logging.info("Entered MERGE_SEQUENCES function")
-    return False
+    sorted_list = []
+    # Cette liste permet de stocker le minimum de chaque liste çad le premier élément
+    min_of_each_list = [element[0] for element in list_sequences]
+
+    while (len(min_of_each_list)>0):
+        ###print('----------------------------\nList of mins: {}'.format(min_of_each_list))
+        # Take the minimum of the current minima...
+        minimum = min(min_of_each_list)
+        ###print('minimum: {}'.format(minimum))
+        # ... and get the list ID corresponding (index stops when it finds a match)
+        index_min = min_of_each_list.index(minimum)
+        ###print('index_min: {}'.format(index_min))
+        sorted_list.append(minimum)
+        ###print('sorted list: {}'.format(sorted_list))
+        if len(list_sequences[index_min]) == 1:
+            ###print('if ok')
+            del min_of_each_list[index_min]
+            del list_sequences[index_min]
+        else:
+            ###print('else: {}'.format(list_sequences[index_min][0]))
+            del list_sequences[index_min][0]
+            # Replace the minimum by the 'new' minimum of the corresponding list
+            min_of_each_list[index_min] = list_sequences[index_min][0]
+        ###print('remaining: {}'.format(list_sequences))
+
+    #print('Global sorted list: {}'.format(sorted_list))
+    return sorted_list
+
+def prepare_response(list_sorted_numbers, numbers_by_packets, id_packet):
+
+    order_packet = 0
+    end = False
+    response = []
+
+    while len(list_sorted_numbers)>0:
+        if len(list_sorted_numbers)<numbers_by_packets:
+            data = list_sorted_numbers[0:]
+            end = True
+            numbers_by_packets = len(list_sorted_numbers)
+        else: 
+            data = list_sorted_numbers[0:numbers_by_packets]
+
+        res = {
+	    "command": "sorted",
+	    "data": data,
+	    "id": id_packet,
+	    "order": order_packet,
+	    "last": end,
+	    "length": numbers_by_packets
+        }
+        #print('----------------\nid: {}\norder_packer: {}\nlast: {}\nnumbers: {}'.format(
+        #    id_packet, order_packet, end, numbers_by_packets))
+        print(res)
+        del list_sorted_numbers[0:numbers_by_packets]
+
+        order_packet += 1
+        requests.post('http://172.17.3.35:8000', json=res)
+        response.append(res)
+    return response
 
 def quicksort(remaining_data):
     less = []
@@ -107,8 +198,19 @@ def quicksort(remaining_data):
     #logging.info("Thread %s: finishing", data['order'])
     #return data
 
-def print_jobs():
+def print_jobs(jobs):
     logging.info("FUNCTIONS Entered PRINT_JOBS()")
-    headers = JOBS[0].keys()
-    rows = [x.values() for x in JOBS]
+    jobs_info = [job.get_info() for job in jobs]
+    headers = jobs_info[0].keys()
+    rows = [x.values() for x in jobs_info]
     print (tabulate.tabulate(rows, headers, tablefmt="grid"))
+
+if __name__ == '__main__':
+    logging.info("FUNCTIONS file MAIN")
+    list_sequences = [
+        [1, 5, 7, 12],
+        [2, 3, 8, 10],
+        [1, 6, 7, 11, 13]
+    ]
+
+    merge_sequences(list_sequences)

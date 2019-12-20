@@ -12,7 +12,7 @@ def hello_world():
 @app.route('/', methods=['POST'])
 def home():
     data = request.get_json()
-    logging.info("Request received: {}".format(data))
+    #logging.info("Request received: {}".format(data))
     command = data['command']
     res = {}
 
@@ -24,6 +24,7 @@ def home():
         res = functions.sort(data)
 
     logging.info("Response: {}".format(res))
+    print(jsonify(res))
     return jsonify(res)
 
 @app.route('/connect')
@@ -31,7 +32,8 @@ def connect():
     data = {"command": "connect",
             "name": "Benoît Wéry",
             "port": 5000}
-    return requests.post('http://172.17.3.193:8000', json=data)
+    logging.info('ENTERED connect')
+    return requests.post('http://172.17.3.35:8000', json=data)
 
 if __name__=='__main__':
     #app.run(host='0.0.0.0', port=80)
